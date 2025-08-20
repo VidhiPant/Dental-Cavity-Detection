@@ -46,13 +46,11 @@ if uploaded_file is not None:
             
             # --- DIAGNOSTIC SECTION ---
             # This will help us understand the model's output.
-            st.warning("DEBUGGING INFO (You can remove this section later)")
             st.write(f"The model's raw output (prediction score) is: **{prediction[0][0]:.4f}**")
             st.write("""
             **Instructions:**
             1. Upload an image that **CLEARLY HAS a cavity**. Note the score.
             2. Upload an image that is **CLEARLY HEALTHY**. Note the score.
-            3. Based on the scores, uncomment the correct `if/else` block below and comment out the other one.
             """)
 
             confidence_score = prediction[0][0]
