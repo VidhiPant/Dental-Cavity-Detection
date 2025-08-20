@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"> <!-- Default theme is light -->
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dental Cavity Detector</title>
+    <style>
+        /* CSS Variables for theming */
+        :root {
+            --bg-color: #eaf0f6; /* Light Greyish Blue */
+            --container-bg: #ffffff;
+            --text-color: #1c1e21;
+            --subtle-text-color: #606770;
+            --result-bg: #e9ecef;
+            --shadow-color: rgba(0,0,0,0.1);
+            --switch-bg: #ccc;
+            --switch-slider-bg: white;
+        }
+
+        [data-theme="dark"] {
+            --bg-color: #2c3e50; /* Dark Greyish Blue */
+            --container-bg: #34495e;
+            --text-color: #ecf0f1;
+            --subtle-text-color: #bdc3c7;
+            --result-bg: #2c3e50;
+            --shadow-color: rgba(0,0,0,0.4);
+            --switch-bg: #555;
+            --switch-slider-bg: #ccc;
+        }
+
+        /* General Styles */
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+        }
+        .container {
+            position: relative; /* For positioning the theme switcher */
+            max-width: 600px;
+            width: 90%;
+            margin: 20px;
+            padding: 30px;
+            background-color: var(--container-bg);
+            border-radius: 12px;
+            box-shadow: 0 4px 12px var(--shadow-color);
+            text-align: center;
+            transition: background-color 0.3s;
+        }
+        h1 {
+            color: var(--text-color);
+            margin-bottom: 25px;
+        }
+        #upload-form {
+            margin: 20px 0;
+        }
+        input[type="file"] {
+            display: none;
+        }
+        .file-label {
+            padding: 12px 25px;
+            border-radius: 8px;
+            background-color: #1877f2;
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s;
+            display: inline-block;
+        }
+        .file-label:hover {
+            background-color: #166fe5;
+        }
+        #file-name {
+            margin-top: 15px;
+            font-style: italic;
+            color: var(--subtle-text-color);
+        }
+        .predict-btn {
+            margin-top: 20px;
+            padding: 12px 30px;
+            border: none;
+            background-color: #42b72a;
+            color: white;
+            cursor: pointer;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        .predict-btn:hover {
+            background-color: #36a420;
+        }
+        #result {
+            margin-top: 25px;
+            padding: 15px;
+            font-size: 1.2em;
+            color: var(--text-color);
+            border-radius: 8px;
+            background-color: var(--result-bg);
+            display: none;
+            transition: background-color 0.3s;
+        }
+
+        /* Theme Switcher Styles */
+        .theme-switch-wrapper {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            align-items: center;
+        }
+        .theme-switch {
+            display: inline-block;
+            height: 24px;
+            position: relative;
+            width: 50px;
+        }
+        .theme-switch input {
+            display:none;
+        }
+        .slider {
+            background-color: var(--switch-bg);
+            bottom: 0;
+            cursor: pointer;
+            left: 0;
+            position: absolute;
+            right: 0;
+            top: 0;
+            transition: .4s;
+            border-radius: 34px;
+        }
+        .slider:before {
+            background-color: var(--switch-slider-bg);
+            bottom: 4px;
+            content: "";
+            height: 16px;
+            left: 4px;
+            position: absolute;
+            transition: .4s;
+            width: 16px;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background-color: #1877f2;
+        }
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="theme-switch-wrapper">
+            <label class="theme-switch" for="theme-checkbox">
+                <input type="checkbox" id="theme-checkbox" />
+                <div class="slider"></div>
+            </label>
+        </div>
+        <h1>Dental Cavity Detector</h1>
+        <form id="upload-form" action="/predict" method="post" enctype="multipart/form-data">
+            <label for="file-input" class="file-label">Choose an Image</label>
+            <input type="file" name="file" id="file-input" required>
+            <div id="file-name">No file chosen</div>
+            <br>
+            <input type="submit" value="Detect Cavity" class="predict-btn">
+        </form>
+        <div id="result"></div>
+    </div>
+
+    <script>
+        // --- THEME SWITCHER LOGIC ---
+        const themeToggle = document.getElementById('theme-checkbox');
+        const docElement = document.documentElement;
+
+        // Function to apply the theme
+        const applyTheme = (theme) => {
+            docElement.setAttribute('data-theme', theme);
+            localStorage.setItem('theme', theme);
+            themeToggle.checked = theme === 'dark';
+        };
+
+        // Check for saved theme in localStorage
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        applyTheme(savedTheme);
+
+        // Event listener for the toggle
+        themeToggle.addEventListener('change', () => {
+            const newTheme = themeToggle.checked ? 'dark' : 'light';
+            applyTheme(newTheme);
+        });
+
+
+        // --- FILE UPLOAD AND PREDICTION LOGIC ---
+        document.getElementById('file-input').addEventListener('change', function() {
+            const fileName = this.files[0] ? this.files[0].name : 'No file chosen';
+            document.getElementById('file-name').textContent = fileName;
+        });
+
+        document.getElementById('upload-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const formData = new FormData();
+            const fileInput = document.getElementById('file-input');
+            
+            if (!fileInput.files[0]) {
+                alert("Please select a file first!");
+                return;
+            }
+
+            formData.append('file', fileInput.files[0]);
+            
+            const resultDiv = document.getElementById('result');
+            resultDiv.style.display = 'block';
+            resultDiv.textContent = '🔍 Analyzing...';
+
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+
+                if (data.error) {
+                    resultDiv.textContent = 'Error: ' + data.error;
+                    resultDiv.style.backgroundColor = '#ffcccb';
+                } else {
+                    resultDiv.textContent = `Prediction: ${data.prediction} (Confidence: ${data.confidence})`;
+                    // Use CSS variables for result background for theme consistency
+                    const resultBgColor = data.prediction === 'Cavity Detected' ? '#c82333' : '#218838';
+                    const resultTextColor = '#ffffff';
+                    resultDiv.style.backgroundColor = resultBgColor;
+                    resultDiv.style.color = resultTextColor;
+                }
+            } catch (error) {
+                resultDiv.textContent = 'An error occurred while fetching the prediction.';
+                resultDiv.style.backgroundColor = '#c82333';
+                resultDiv.style.color = '#ffffff';
+            }
+        });
+    </script>
+</body>
+</html>
